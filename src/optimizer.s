@@ -3,25 +3,26 @@
 
 .text
 back_propagation:
+    fmov s25, -2.0              // -2.0 to s7
+    fsub s8, s4, s2             // error = y[i] - y_hat
 
-    bl linear_model        // goes to model.s and calculates the y_hat in s14
+    fmul s6, s8, s3             // dw = -2 * error * x[i]
+    fmul s6, s6, s25
 
-    fmov s7, -2.0          // -2.0 to s7
-    fsub s8, s11, s14      // error = y[i] - y_hat
-
-    fmul s16, s8, s10      // dw = -2 * error * x[i]
-    fmul s16, s16, s7
-
-    fmul s17, s8, s7       // db = -2 * error
+    fmul s7, s8, s25            // db = -2 * error
 
     ret
 
 optimize:
+    stp x29, x30, [sp, -16]!    // save frame pointer and link register
+    mov x29, sp
 
-    fmul s5, s9, s16
-    fmul s6, s9, s17
+    fmul s25, s23, s18
+    fmul s16, s16, s25
 
-    fsub s12, s12, s5     // w - (learning_rate * dw)
-    fsub s13, s13, s6     // b - (learning_rate * db)
+    fsub s25, s23, s19          // w - (learning_rate * dw)
+    fsub s17, s17, s25          // b - (learning_rate * db)
+
+    ldp x29, x30, [sp], #16     // restore fp and lr
 
     ret
