@@ -2,7 +2,7 @@
 
 .text
 linear_model:
-    fmul s14, s12, s10
-    fadd s14, s14, s13
+    fmul s2, s0, s3
+    fadd s2, s2, s1
 
     ret
