@@ -4,14 +4,14 @@
 x:                  .float 35.7, 55.9, 58.2, 81.9, 56.3, 48.9, 33.9, 21.8, 48.4, 60.4, 68.4
 y:                  .float 0.5,  14.0, 15.0, 28.0, 11.0,  8.0,  3.0, -4.0,  6.0, 13.0, 21.0
 
-weight_:            .float 0.0
+weight_:            .float 1.0
 bias_:              .float 0.0
 
 sample_size:        .float 11.0
 learning_rate:      .float 0.01
 epochs:             .word 100
 
-epoch_string:       .asciz "Epoch %d, weight: %.2f, bias: %.2f, loss: %.3f\n"
+epoch_string:       .asciz "Epoch %d, weight: %.4f, bias: %.4f, loss: %.4f\n"
 
 zero_float:         .float 0.0
 
@@ -24,9 +24,9 @@ main:
     ldr x11, =y                    // address of array y
 
     ldr x12, =weight_              // address of weight_ buffer to x12
-    ldr s16, [x12]                 // number of weight_ to s0
+    ldr s16, [x12]                 // number of weight_ to s16
     ldr x13, =bias_                // address of bias_ buffer to x13
-    ldr s17, [x13]                 // number of bias_ to s1
+    ldr s17, [x13]                 // number of bias_ to s17
 
     ldr x18, =sample_size          // address of sample_size to s18
     ldr s24, [x18]                 // number of sample_size to s18
@@ -69,11 +69,12 @@ train_loop:
     stp s20, s23, [sp, 104]        // s20 (total loss), s23 (learning_rate)
     str s24, [sp, 120]             // s24 (sample_size)
 
+    fdiv s2, s20, s24              // calculate mean of total loss
     adr x0, epoch_string           // address of epoch_string
     mov w1, w20                    // not necessary but to know that the second argument is for epoch number
-    fmov s0, s16                   // weight
-    fmov s1, s17                   // bias
-    fdiv s2, s20, s24              // loss
+    fcvt d0, s16                   // weight
+    fcvt d1, s17                   // bias
+    fcvt d2, s2                    // loss
     bl printf
 
     // restore registers:
@@ -105,12 +106,14 @@ forward_loop:
     ldr s3, [x10, x1]              // s3 = x[i]
     ldr s4, [x11, x1]              // s4 = y[i]
 
+    fmov s0, s16                   // put weight in temporary register
+    fmov s1, s17                   // put bias in temporary register
 
     bl linear_model                // goes to model.s and calculates the y_hat in s14
 
     bl mean_squared_error          // goes to loss.s and calculates the loss in s5
 
-    bl back_propagation
+    bl back_propagation            // goes to optimizer.s and calculates dw & db
 
     fadd s18, s18, s6              // with s6 being the derivative of weight, calculated from optimizer.s file
     fadd s19, s19, s7              // with s7 being the derivative of bias, calculated from optimizer.s file
