@@ -15,21 +15,31 @@ epoch_string:       .asciz "Epoch %d, weight: %.4f, bias: %.4f, loss: %.4f\n"
 
 zero_float:         .float 0.0
 
+norm_constant:      .float 0.1
+
 .text
 main:
     ldr x9, =learning_rate         // address of learning_rate to x9
     ldr s23, [x9]                  // number of learning_rate to s9
 
+    ldr x18, =sample_size          // address of sample_size to s18
+    ldr s24, [x18]                 // number of sample_size to s18
+
     ldr x10, =x                    // address of array x
     ldr x11, =y                    // address of array y
+
+    ldr x5, =norm_constant         // a constant for normalizing x array
+    ldr s29, [x5]
+
+    fcvtzs x19, s24                // convert sample size to int
+    mov x0, 0
+
+    bl normalize_array
 
     ldr x12, =weight_              // address of weight_ buffer to x12
     ldr s16, [x12]                 // number of weight_ to s16
     ldr x13, =bias_                // address of bias_ buffer to x13
     ldr s17, [x13]                 // number of bias_ to s17
-
-    ldr x18, =sample_size          // address of sample_size to s18
-    ldr s24, [x18]                 // number of sample_size to s18
 
     ldr x4, =epochs                // address of epochs buffer to x4
     ldr w19, [x4]                  // number of epochs to w4
@@ -49,8 +59,8 @@ train_loop:
 
     bl forward_loop
 
-    fdiv s18, s18, s24
-    fdiv s19, s19, s24
+    fdiv s18, s18, s24             // mean of dw
+    fdiv s19, s19, s24             // mean of db
 
     bl optimize
 
