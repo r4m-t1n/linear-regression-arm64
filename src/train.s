@@ -1,16 +1,17 @@
 .global main
 
 .data
-x:                  .float 35.7, 55.9, 58.2, 81.9, 56.3, 48.9, 33.9, 21.8, 48.4, 60.4, 68.4
-y:                  .float 0.5,  14.0, 15.0, 28.0, 11.0,  8.0,  3.0, -4.0,  6.0, 13.0, 21.0
+x_ptr:              .quad 0
+y_ptr:              .quad 0
 
 weight_:            .float 1.0
 bias_:              .float 0.0
 
-sample_size:        .float 11.0
+sample_size:        .word 0
 learning_rate:      .float 0.01
 epochs:             .word 100
 
+filename:           .asciz "data.csv"
 epoch_string:       .asciz "Epoch %d, weight: %.4f, bias: %.4f, loss: %.4f\n"
 
 zero_float:         .float 0.0
@@ -22,17 +23,25 @@ main:
     ldr x9, =learning_rate         // address of learning_rate to x9
     ldr s23, [x9]                  // number of learning_rate to s9
 
+    adr x0, filename               // address of filename
+    ldr x1, =x_ptr                 // address of pointer x
+    ldr x2, =y_ptr                 // address of pointer y
+    ldr x3, =sample_size           // address of sample_size
+    bl read_csv
+
     ldr x18, =sample_size          // address of sample_size to s18
     ldr s24, [x18]                 // number of sample_size to s18
 
-    ldr x10, =x                    // address of array x
-    ldr x11, =y                    // address of array y
+    ldr x10, =x_ptr
+    ldr x10, [x10]                 // address of array x
+    
+    ldr x11, =y_ptr
+    ldr x11, [x11]                 // address of array y
 
     ldr x5, =norm_constant         // a constant for normalizing x array
     ldr s29, [x5]
 
     fcvtzs x19, s24                // convert sample size to int
-    mov x0, 0
 
     bl normalize_array
 
@@ -48,6 +57,8 @@ main:
     b train_loop
 
 train_loop:
+    add w20, w20, 1
+
     adr x0, zero_float             // address of zero_float to s0
     ldr s25, [x0]                  // number of zero_flat to s25
 
@@ -55,7 +66,7 @@ train_loop:
     fmov s19, s25                  // sum of derivatives of bias
     fmov s20, s25                  // total loss
 
-    mov x0, 0                      // index of forward_loop from 0 to sample
+    mov x0, 0                      // index of forward_loop from 0 to sample_size
 
     bl forward_loop
 
@@ -63,6 +74,13 @@ train_loop:
     fdiv s19, s19, s24             // mean of db
 
     bl optimize
+
+    mov w21, 10
+    udiv w22, w20, w21             // w22 = w20 / 10
+    msub w23, w22, w21, w20        // w23 = w20 % 10
+
+    cmp w23, 0                    // If w23 != 0, skip printing
+    bne skip_epoch_print
 
     // save registers:
     stp x29, x30, [sp, -112]!      // save fp and lr, allocate 112 bytes for registers
@@ -81,7 +99,7 @@ train_loop:
 
     fdiv s2, s20, s24              // calculate mean of total loss
     adr x0, epoch_string           // address of epoch_string
-    mov w1, w20                    // not necessary but to know that the second argument is for epoch number
+    mov w1, w20                    // epoch
     fcvt d0, s16                   // weight
     fcvt d1, s17                   // bias
     fcvt d2, s2                    // loss
@@ -99,14 +117,18 @@ train_loop:
     ldp x11, x12, [sp, 32]
     ldp x9, x10, [sp, 16]
 
-    ldp x29, x30, [sp], #112       // restore fp and lr and adjust sp
+    ldp x29, x30, [sp], 112       // restore fp and lr and adjust sp
 
-    add w20, w20, 1
+    cmp w20, w19
+    ble train_loop
+
+    b exit
+
+skip_epoch_print:
     cmp w20, w19
     blt train_loop
 
     b exit
-
 
 forward_loop:
     stp x29, x30, [sp, -16]!       // save frame pointer and link register
@@ -134,7 +156,7 @@ forward_loop:
     fcmp s25, s24                  // s19 = sample_size
     blt forward_loop
 
-    ldp x29, x30, [sp], #16        // restore fp and lr
+    ldp x29, x30, [sp], 16        // restore fp and lr
 
     ret
 
