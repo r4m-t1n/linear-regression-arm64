@@ -31,6 +31,7 @@ To use one of them, rename it to `data.csv` or update the `filename` variable in
 You can use the provided `build.sh` script to compile everything:
 
 ```bash
+chmod +x build.sh
 ./build.sh
 ```
 
