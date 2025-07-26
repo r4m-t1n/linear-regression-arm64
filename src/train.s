@@ -79,23 +79,15 @@ train_loop:
     udiv w22, w20, w21             // w22 = w20 / 10
     msub w23, w22, w21, w20        // w23 = w20 % 10
 
-    cmp w23, 0                    // If w23 != 0, skip printing
+    cmp w23, 0                     // If w23 != 0, skip printing
     bne skip_epoch_print
 
     // save registers:
-    stp x29, x30, [sp, -112]!      // save fp and lr, allocate 112 bytes for registers
+    stp x29, x30, [sp, -48]!       // save fp and lr, allocate 48 bytes for registers
     mov x29, sp                    // update fp
 
     stp x9, x10, [sp, 16]          // x9 (learning_rate address), x10 (x array address)
     stp x11, x12, [sp, 32]         // x11 (y array address), x12 (weight_ address)
-    stp x13, x18, [sp, 48]         // x13 (bias_ address), x18 (sample_size address)
-    str w20, [sp, 64]              // w20 (epoch)
-    str w19, [sp, 68]              // w19 (epochs)
-
-    stp s16, s17, [sp, 72]         // s16 (weight), s17 (bias)
-    stp s18, s19, [sp, 88]         // s18 (sum of dw), s19 (sum of db)
-    stp s20, s23, [sp, 104]        // s20 (total loss), s23 (learning_rate)
-    str s24, [sp, 120]             // s24 (sample_size)
 
     fdiv s2, s20, s24              // calculate mean of total loss
     adr x0, epoch_string           // address of epoch_string
@@ -106,18 +98,10 @@ train_loop:
     bl printf
 
     // restore registers:
-    ldr s24, [sp, 120]
-    ldp s20, s23, [sp, 104]
-    ldp s18, s19, [sp, 88]
-    ldp s16, s17, [sp, 72]
-
-    ldr w19, [sp, 68]
-    ldr w20, [sp, 64]
-    ldp x13, x18, [sp, 48]
     ldp x11, x12, [sp, 32]
     ldp x9, x10, [sp, 16]
 
-    ldp x29, x30, [sp], 112       // restore fp and lr and adjust sp
+    ldp x29, x30, [sp], 48         // restore fp and lr and adjust sp
 
     cmp w20, w19
     ble train_loop
@@ -156,7 +140,7 @@ forward_loop:
     fcmp s25, s24                  // s19 = sample_size
     blt forward_loop
 
-    ldp x29, x30, [sp], 16        // restore fp and lr
+    ldp x29, x30, [sp], 16         // restore fp and lr
 
     ret
 
