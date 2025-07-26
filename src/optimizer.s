@@ -14,15 +14,10 @@ back_propagation:
     ret
 
 optimize:
-    stp x29, x30, [sp, -16]!    // save frame pointer and link register
-    mov x29, sp
-
     fmul s26, s23, s18
     fmul s27, s23, s19
 
     fsub s16, s16, s26          // w - (learning_rate * dw)
     fsub s17, s17, s27          // b - (learning_rate * db)
-
-    ldp x29, x30, [sp], #16     // restore fp and lr
 
     ret
